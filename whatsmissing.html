@@ -136,6 +136,15 @@
   .modal { position: fixed; inset: 0; background: rgba(47,72,88,.5); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
   .modal.open { display: flex; }
   .modal-box { background: #fff; border: 3px solid var(--blue-line); border-radius: 28px; padding: 26px; width: 100%; max-width: 580px; max-height: 88vh; overflow: auto; }
+  .modal-box.modal-wide { max-width: 940px; }
+  .modal-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .modal-col { min-width: 0; }
+  @media (max-width: 760px) { .modal-cols { grid-template-columns: 1fr; } }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 132px; overflow: auto; margin: 10px 0 4px; }
+  .chip { background: var(--blue-light); border: 2px solid var(--blue-line); color: var(--blue-deep); border-radius: 999px; padding: 2px 11px; font-size: .92rem; font-weight: 700; }
+  .bank-item.active { border-color: var(--blue-deep); background: #F5FBFF; }
+  .bank-item .btns { display: flex; gap: 6px; flex-shrink: 0; }
+  .empty-tip { border: 3px dashed var(--blue-line); border-radius: 16px; padding: 22px 16px; text-align: center; color: #7C97A6; font-size: .98rem; line-height: 1.7; }
   .modal-box h2 { color: var(--blue-deep); margin-bottom: 14px; }
   .modal-box h3 { margin: 20px 0 10px; font-size: 1.05rem; }
   textarea { min-height: 160px; resize: vertical; font-size: 1.05rem; line-height: 1.7; }
@@ -315,21 +324,46 @@
 
 <!-- ============ 詞庫管理彈窗 ============ -->
 <div class="modal" id="bankModal">
-  <div class="modal-box">
+  <div class="modal-box modal-wide">
     <h2>📚 管理詞庫</h2>
 
-    <h3>匯入自訂詞庫</h3>
-    <input type="text" id="bankName" placeholder="詞庫名稱，例如：交通工具" />
-    <textarea id="bankWords" placeholder="每行一個單字，至少 3 個，建議英文小寫&#10;train&#10;bus&#10;taxi"></textarea>
-    <div class="row" style="margin-top:12px;">
-      <button class="btn-sm btn-green" id="btnImport">匯入</button>
-      <span class="hintline" style="margin:0;">儲存在本機瀏覽器，重新整理後仍可使用。</span>
-    </div>
-    <div class="err" id="importErr"></div>
-    <div class="ok" id="importOk"></div>
+    <div class="modal-cols">
+      <!-- 左欄：匯入 + 詞庫清單 -->
+      <div class="modal-col">
+        <h3>匯入自訂詞庫</h3>
+        <input type="text" id="bankName" placeholder="詞庫名稱，例如：交通工具" />
+        <textarea id="bankWords" placeholder="每行一個單字，至少 3 個，建議英文小寫&#10;train&#10;bus&#10;taxi"></textarea>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn-sm btn-green" id="btnImport">匯入</button>
+          <span class="hintline" style="margin:0;">儲存在本機瀏覽器，重新整理後仍可使用。</span>
+        </div>
+        <div class="err" id="importErr"></div>
+        <div class="ok" id="importOk"></div>
 
-    <h3>已有詞庫</h3>
-    <div id="bankList"></div>
+        <h3>已有詞庫（點「查看」可瀏覽 / 編輯）</h3>
+        <div id="bankList"></div>
+      </div>
+
+      <!-- 右欄：詞庫內容瀏覽與編輯 -->
+      <div class="modal-col">
+        <h3>詞庫內容 / 編輯</h3>
+        <div id="editorEmpty" class="empty-tip">← 點左邊任一詞庫的「查看」<br />這裡會顯示完整單字，並可直接修改</div>
+
+        <div id="editorPanel" style="display:none;">
+          <div class="hintline" id="editMeta" style="margin:0 0 8px;"></div>
+          <input type="text" id="editName" placeholder="詞庫名稱" />
+          <div class="chips" id="editChips"></div>
+          <textarea id="editWords" placeholder="每行一個單字"></textarea>
+          <div class="row" style="margin-top:12px;">
+            <button class="btn-sm btn-green" id="btnSaveBank">💾 儲存</button>
+            <button class="btn-sm btn-ghost" id="btnCopyBank">🆕 另存為新詞庫</button>
+            <button class="btn-sm btn-pink" id="btnDeleteBank">🗑 刪除</button>
+          </div>
+          <div class="err" id="editErr"></div>
+          <div class="ok" id="editOk"></div>
+        </div>
+      </div>
+    </div>
 
     <div class="center" style="margin-top:22px;">
       <button class="btn-lg btn-ghost" id="btnCloseModal">關閉</button>
@@ -845,7 +879,12 @@ $('btnHome').onclick = () => show('welcome');
 
 /* ============ 詞庫彈窗 ============ */
 const modal = $('bankModal');
-function openModal() { modal.classList.add('open'); renderBankList(); }
+let editingId = null;   // 右欄目前正在瀏覽 / 編輯的詞庫
+function openModal() {
+  modal.classList.add('open');
+  renderBankList();
+  if (state.bankId && banks.some(b => b.id === state.bankId)) selectBank(state.bankId);
+}
 function closeModal() { modal.classList.remove('open'); $('importErr').textContent = ''; $('importOk').textContent = ''; }
 $('btnCloseModal').onclick = closeModal;
 modal.onclick = e => { if (e.target === modal) closeModal(); };
@@ -856,11 +895,13 @@ $('btnImport').onclick = () => {
   $('importErr').textContent = ''; $('importOk').textContent = '';
   if (!name) { $('importErr').textContent = '請先填寫詞庫名稱。'; return; }
   if (words.length < SHOW_COUNT) { $('importErr').textContent = `至少需要 ${SHOW_COUNT} 個單字，目前 ${words.length} 個。`; return; }
-  banks.push({ id: 'c-' + Date.now(), name: '自訂 · ' + name, custom: true, words });
+  const nb = { id: 'c-' + Date.now(), name: '自訂 · ' + name, custom: true, words };
+  banks.push(nb);
   saveCustomBanks();
   $('bankName').value = ''; $('bankWords').value = '';
   $('importOk').textContent = `已匯入「${name}」，共 ${words.length} 個單字。`;
-  renderBankList(); renderBankSelect();
+  renderBankSelect();
+  selectBank(nb.id);
 };
 
 function renderBankList() {
@@ -868,29 +909,97 @@ function renderBankList() {
   box.innerHTML = '';
   banks.forEach(b => {
     const item = document.createElement('div');
-    item.className = 'bank-item';
-    item.innerHTML = `<div>
-        <div style="font-weight:700;">${b.name}</div>
-        <div class="meta">${b.words.slice(0, 12).join(' / ')}${b.words.length > 12 ? ' …（共 ' + b.words.length + ' 字）' : ''}</div>
-      </div>`;
+    item.className = 'bank-item' + (b.id === editingId ? ' active' : '');
+    const info = document.createElement('div');
+    info.innerHTML = `<div style="font-weight:700;">${b.name}</div>
+        <div class="meta">${b.words.slice(0, 12).join(' / ')}${b.words.length > 12 ? ' …（共 ' + b.words.length + ' 字）' : ''}</div>`;
+    item.appendChild(info);
+
+    const btns = document.createElement('div');
+    btns.className = 'btns';
+    const view = document.createElement('button');
+    view.className = 'btn-sm btn-blue'; view.textContent = '查看';
+    view.onclick = () => selectBank(b.id);
+    btns.appendChild(view);
     if (b.custom) {
       const del = document.createElement('button');
       del.className = 'btn-sm btn-pink'; del.textContent = '刪除';
-      del.onclick = () => {
-        banks = banks.filter(x => x.id !== b.id);
-        saveCustomBanks();
-        if (state.bankId === b.id) state.bankId = banks[0]?.id || '';
-        renderBankList(); renderBankSelect();
-      };
-      item.appendChild(del);
-    } else {
-      const tag = document.createElement('span');
-      tag.className = 'meta'; tag.textContent = '內建';
-      item.appendChild(tag);
+      del.onclick = () => deleteBank(b.id);
+      btns.appendChild(del);
     }
+    item.appendChild(btns);
     box.appendChild(item);
   });
 }
+
+/* ---------- 右欄：瀏覽 / 編輯詞庫 ---------- */
+function selectBank(id) {
+  const b = banks.find(x => x.id === id);
+  if (!b) return;
+  editingId = id;
+  $('editMeta').textContent = (b.custom ? '自訂詞庫 · ' : '內建詞庫 · ') + b.words.length + ' 個單字'
+    + (b.custom ? '' : '（儲存時會另存為自訂詞庫，內建詞庫保留不動）');
+  $('editName').value = b.custom
+    ? b.name.replace(/^自訂\s*·\s*/, '')
+    : b.name.replace(/^\S+\s+/, '').replace(/（\d+\s*字）/, '').trim();
+  $('editWords').value = b.words.join('\n');
+  $('btnDeleteBank').style.display = b.custom ? 'inline-block' : 'none';
+  $('editErr').textContent = ''; $('editOk').textContent = '';
+  $('editorEmpty').style.display = 'none';
+  $('editorPanel').style.display = 'block';
+  renderChips();
+  renderBankList();
+}
+function renderChips() {
+  const words = $('editWords').value.split(/[\n,，;；]+/).map(w => w.trim()).filter(Boolean);
+  $('editChips').innerHTML = words.map(w => `<span class="chip">${w}</span>`).join('');
+  return words;
+}
+$('editWords').oninput = renderChips;
+
+function saveBankAs(copy) {
+  const b = banks.find(x => x.id === editingId);
+  if (!b) return;
+  const rawName = $('editName').value.trim();
+  const words = renderChips().map(w => w.toLowerCase());
+  $('editErr').textContent = ''; $('editOk').textContent = '';
+  if (!rawName) { $('editErr').textContent = '請填寫詞庫名稱。'; return; }
+  if (words.length < SHOW_COUNT) { $('editErr').textContent = `至少需要 ${SHOW_COUNT} 個單字，目前 ${words.length} 個。`; return; }
+
+  if (!copy && b.custom) {          // 直接更新原本的自訂詞庫
+    b.name = '自訂 · ' + rawName;
+    b.words = words;
+    saveCustomBanks();
+    $('editOk').textContent = `已儲存「${rawName}」，共 ${words.length} 個單字。`;
+    renderBankList(); renderBankSelect(); updateBankPreview();
+    return;
+  }
+  // 內建詞庫（或「另存為新詞庫」）：建立新的自訂詞庫
+  const nb = { id: 'c-' + Date.now(), name: '自訂 · ' + rawName, custom: true, words };
+  banks.push(nb);
+  saveCustomBanks();
+  editingId = nb.id;
+  $('editOk').textContent = `已另存為「${rawName}」，共 ${words.length} 個單字。`;
+  renderBankList(); renderBankSelect(); updateBankPreview();
+}
+$('btnSaveBank').onclick = () => saveBankAs(false);
+$('btnCopyBank').onclick = () => saveBankAs(true);
+
+function deleteBank(id) {
+  const b = banks.find(x => x.id === id);
+  if (!b || !b.custom) return;
+  if (!confirm(`確定刪除「${b.name}」？`)) return;
+  banks = banks.filter(x => x.id !== id);
+  saveCustomBanks();
+  if (state.bankId === id) state.bankId = banks[0]?.id || '';
+  if (editingId === id) {
+    editingId = null;
+    $('editorPanel').style.display = 'none';
+    $('editorEmpty').style.display = 'block';
+  }
+  renderBankList(); renderBankSelect();
+}
+$('btnDeleteBank').onclick = () => { if (editingId) deleteBank(editingId); };
 
 /* 初始化 */
 renderBankSelect();
