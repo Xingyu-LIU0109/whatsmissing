@@ -40,7 +40,12 @@
 
 - 孩子人數 **2 ~ 7 人**，姓名可留空，也可按「⏭ 跳過，用預設名字」
 - 卡片為近正方形、三張並排，白色卡面 + 淺藍色邊框，錯落擺放但不互相遮擋
-- 詞庫：預設 **全部混池**（約 160 個簡單單字），也可單選分類練習
+- 詞庫：預設 **幼兒基礎 Kids（47 字，幼兒園～小學低年級程度）**：
+  cat / dog / duck / lion / panda / fish / egg / monkey / pig / red / blue / yellow / pink /
+  one / two / three / four / five / nine / car / bus / ship / train / bed / book / pencil /
+  pen / ruler / paper / zoo / dress / shirt / ball / doll / run / swim / sing / dance /
+  draw / play / sleep / jump / eat / mom / dad / baby / sister
+- 另有 **全部混池 Mixed**（約 160 個簡單單字），也可單選分類練習
   - 動物 / 食物 / 顏色形狀 / 學習用品 / 交通工具 / 身體 / 家居 / 大自然 /
     衣物 / 動作 / 家人朋友 / 玩具 / 數字 / 地點
 - 自訂詞庫：名稱 + 每行一個單字（至少 3 個）→ 匯入，存在本機瀏覽器，重新整理後仍在，可刪除

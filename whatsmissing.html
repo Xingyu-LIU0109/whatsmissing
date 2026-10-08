@@ -259,7 +259,7 @@
       </div>
 
       <div class="field">
-        <label>④ 選擇詞庫 <span class="tip">（預設「全部混池」，每輪隨機抽 3 個，消失 1 個）</span></label>
+        <label>④ 選擇詞庫 <span class="tip">（預設「幼兒基礎」，每輪隨機抽 3 個，消失 1 個）</span></label>
         <select id="bankSelect"></select>
         <div class="hintline" id="bankPreview"></div>
       </div>
@@ -398,6 +398,19 @@ const DEFAULT_BANKS = Object.keys(CATEGORIES).map(k => ({
 const MIXED = [];
 Object.values(CATEGORIES).forEach(list => list.forEach(w => { if (!MIXED.includes(w)) MIXED.push(w); }));
 DEFAULT_BANKS.unshift({ id: 'd-mixed', name: `⭐ 全部混池 Mixed（${MIXED.length} 字）`, custom: false, words: MIXED });
+
+// 幼兒基礎：老師指定、適合幼兒園～小學低年級的基礎詞（最常使用，放在最前面並預設選中）
+const KIDS = [
+  'cat','dog','duck','lion','panda','fish','egg','monkey','pig',
+  'red','blue','yellow','pink',
+  'one','two','three','four','five','nine',
+  'car','bus','ship','train',
+  'bed','book','pencil','pen','ruler','paper','zoo',
+  'dress','shirt','ball','doll',
+  'run','swim','sing','dance','draw','play','sleep','jump','eat',
+  'mom','dad','baby','sister'
+];
+DEFAULT_BANKS.unshift({ id: 'd-kids', name: `🌟 幼兒基礎 Kids（${KIDS.length} 字）`, custom: false, words: KIDS });
 
 const LS_KEY = 'whatsmissing.banks.v2';
 const SHOW_COUNT = 3;   // 每輪展示 3 個單字
