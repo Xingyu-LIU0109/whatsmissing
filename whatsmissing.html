@@ -35,12 +35,10 @@
   @keyframes fade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
   h1.title { text-align: center; font-size: clamp(2rem, 5vw, 3rem); color: var(--blue-deep); letter-spacing: 1px; }
-  .subtitle { text-align: center; color: #7C97A6; margin: 10px 0 8px; font-size: 1.05rem; }
+  .subtitle { text-align: center; color: #7C97A6; margin: 10px 0 24px; font-size: 1.05rem; }
   .credit {
-    text-align: center; margin: 0 0 22px; font-size: 1.15rem; font-weight: 700;
-    color: var(--blue-deep); background: #fff; display: block; width: fit-content;
-    margin-left: auto; margin-right: auto; padding: 6px 20px; border-radius: 999px;
-    border: 3px solid var(--blue-line);
+    text-align: center; margin: 22px auto 0; font-size: 1rem; font-weight: 600;
+    color: #8FA6B2; width: fit-content; letter-spacing: .5px;
   }
   .panel {
     background: #fff; border: 3px solid var(--blue-line); border-radius: 28px;
@@ -103,7 +101,8 @@
     box-shadow: 0 12px 0 rgba(63,169,245,.10); padding: 18px;
   }
   /* 外層插槽負責錯落與洗牌位移，內層卡片負責旋轉與浮動 */
-  .card-slot { width: min(31%, 260px); }
+  /* 寬度同時受 vh 限制，保證在大螢幕上也不會超出卡片池高度 */
+  .card-slot { width: min(31%, 260px, 40vh); }
   .word-card {
     width: 100%; aspect-ratio: 1 / 1.05;
     background: #fff; border: 4px solid var(--blue-line); border-radius: 26px;
@@ -150,6 +149,63 @@
   .ranking { list-style: none; margin: 18px 0; }
   .ranking li { display: flex; justify-content: space-between; align-items: center; border: 3px solid var(--blue-light); border-radius: 14px; padding: 12px 18px; margin-bottom: 10px; font-weight: 700; font-size: 1.1rem; }
   .ranking li .rank { width: 34px; height: 34px; border-radius: 50%; background: var(--blue-light); border: 3px solid var(--blue-line); display: grid; place-items: center; }
+
+  /* ============ 螢幕適配：手機 / 平板 / 大螢幕 / 投影 ============ */
+  html { -webkit-text-size-adjust: 100%; }
+
+  /* 小螢幕（手機） */
+  @media (max-width: 560px) {
+    body { padding: 16px 10px 32px; }
+    .panel { padding: 18px; border-radius: 22px; }
+    .hud { gap: 8px; font-size: .88rem; }
+    .badge { padding: 5px 10px; }
+    .stage { height: clamp(240px, 42vh, 360px); gap: 8px; padding: 10px; border-radius: 22px; }
+    .card-slot { width: min(31%, 150px, 34vh); }
+    .word-card { border-radius: 20px; border-width: 3px; }
+    .btn-lg { font-size: 1rem; padding: 12px 20px; }
+    .btn-sm { font-size: .85rem; padding: 8px 14px; }
+    .answer-bar { font-size: 1.05rem; }
+    .answer-bar .big { font-size: 1.4rem; }
+  }
+
+  /* 中大型螢幕（筆電 / 一般螢幕） */
+  @media (min-width: 1200px) {
+    .app { max-width: 1180px; }
+    .stage { height: clamp(420px, 56vh, 640px); gap: 44px; }
+    .card-slot { width: min(30%, 330px, 42vh); }
+  }
+
+  /* 大螢幕（教室觸控大屏 / 電視） */
+  @media (min-width: 1700px) {
+    html { font-size: 19px; }
+    .app { max-width: 1420px; }
+    .panel { padding: 36px; }
+    .stage { height: clamp(480px, 56vh, 720px); gap: 56px; border-radius: 34px; }
+    .card-slot { width: min(30%, 420px, 44vh); }
+    .word-card { border-radius: 32px; border-width: 5px; }
+  }
+
+  /* 超大螢幕 / 4K 投影 */
+  @media (min-width: 2200px) {
+    html { font-size: 22px; }
+    .app { max-width: 1720px; }
+    .stage { height: clamp(560px, 58vh, 860px); }
+    .card-slot { width: min(30%, 500px, 46vh); }
+  }
+
+  /* 高度較矮（橫向平板、投影 16:9 但高度有限）不擠壓變形 */
+  @media (min-width: 700px) and (max-height: 720px) {
+    body { padding-top: 14px; }
+    .stage { height: clamp(260px, 46vh, 400px); }
+    .hud { margin-bottom: 8px; }
+    .scoreboard { margin-bottom: 10px; }
+  }
+
+  /* 超寬超扁（21:9 拼接牆） */
+  @media (min-aspect-ratio: 21/9) {
+    .stage { height: clamp(240px, 40vh, 420px); }
+    .card-slot { width: min(28%, 380px, 34vh); }
+  }
 </style>
 </head>
 <body>
@@ -159,7 +215,6 @@
   <section id="screen-welcome" class="screen active">
     <h1 class="title">What's Missing?</h1>
     <p class="subtitle">Three words, one disappears — who can say it first?</p>
-    <p class="credit">Made by Stella 💛</p>
     <div class="panel">
       <p style="line-height:1.9; margin-bottom:22px;">
         🧠 <b>玩法：</b>每輪展示 3 個單字，老師按「🙈 遮住一個」後隨機消失 1 個。<br />
@@ -171,6 +226,7 @@
         <button class="btn-lg btn-blue" id="btnGoSetup">▶ 開始遊戲</button>
       </div>
     </div>
+    <p class="credit">Made by Stella 💛</p>
   </section>
 
   <!-- ============ 第二屏：設定 ============ -->
@@ -589,11 +645,13 @@ function pickWords(bank) {
 function buildCards(words) {
   const stage = $('stage');
   stage.innerHTML = '';
+  // 錯落幅度隨卡片池高度縮放，避免在矮螢幕上頂出邊框
+  const jitter = Math.max(16, Math.min(46, Math.round(stage.clientHeight * 0.11)));
   state.cards = words.map((w, i) => {
     const slot = document.createElement('div');
     slot.className = 'card-slot';
     // 錯落但不重疊：上下位移 + 輕微旋轉
-    slot.style.marginTop = (Math.round((Math.random() - 0.5) * 46)) + 'px';
+    slot.style.marginTop = (Math.round((Math.random() - 0.5) * jitter)) + 'px';
     const el = document.createElement('div');
     el.className = 'word-card';
     el.style.setProperty('--rot', ((Math.random() - 0.5) * 7).toFixed(2) + 'deg');
