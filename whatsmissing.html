@@ -296,7 +296,7 @@
       <button class="btn-lg btn-yellow" id="btnNext" style="display:none;">Next →</button>
     </div>
     <div class="center" id="awardRow" style="margin-top:14px;"></div>
-    <p class="phase-tip">Keys: Space = Hide / Next　·　Enter = Show answer</p>
+    <p class="phase-tip">Keys: Space = Hide / Next　·　Enter = Show answer　·　Timer runs only while the word is hidden</p>
   </section>
 
   <!-- ============ 結算 ============ -->
@@ -547,20 +547,24 @@ $('btnStart').onclick = () => {
   state.timeLeft = state.minutes * 60;
   state.paused = false;
   $('btnPause').textContent = '⏸ Pause';
+  $('btnPause').disabled = true;
   show('game');
   renderScoreboard();
   startTimer();
   nextRound();
 };
 
-/* ============ 計時（老師計時） ============ */
+/* ============ 計時（老師計時）============
+   只有在「單字已消失、孩子正在想」的階段才計時；
+   記單字階段與看答案 / 加分階段一律不計時。 */
 let timer = null;
+function isTiming() { return state.minutes !== 0 && state.phase === 'hidden' && !state.paused; }
 function startTimer() {
   clearInterval(timer);
   updateTimerBadge();
   if (state.minutes === 0) return;
   timer = setInterval(() => {
-    if (state.paused) return;
+    if (!isTiming()) return;
     state.timeLeft -= 1;
     updateTimerBadge();
     if (state.timeLeft <= 0) { clearInterval(timer); finishGame(true); }
@@ -568,10 +572,11 @@ function startTimer() {
 }
 function updateTimerBadge() {
   const el = $('timerBadge');
-  el.classList.toggle('paused', state.minutes !== 0 && state.paused);
+  const running = isTiming();
+  el.classList.toggle('paused', state.minutes !== 0 && !running);
   if (state.minutes === 0) { el.textContent = '⏱ No limit'; el.classList.remove('over'); return; }
-  el.textContent = (state.paused ? '⏸ ' : '⏱ ') + fmtTime(Math.max(0, state.timeLeft));
-  el.classList.toggle('over', state.timeLeft <= 10 && !state.paused);
+  el.textContent = (running ? '⏱ ' : '⏸ ') + fmtTime(Math.max(0, state.timeLeft));
+  el.classList.toggle('over', state.timeLeft <= 10 && running);
 }
 function setPaused(v) {
   state.paused = v;
@@ -579,7 +584,7 @@ function setPaused(v) {
   updateTimerBadge();
 }
 $('btnPause').onclick = () => {
-  if (state.minutes === 0) return;
+  if (state.minutes === 0 || $('btnPause').disabled) return;
   setPaused(!state.paused);
 };
 
@@ -685,8 +690,11 @@ function nextRound() {
   $('btnReveal').disabled = true;
   $('btnNext').style.display = 'none';
 
-  // 新一輪開始，計時繼續
-  if (state.minutes !== 0) setPaused(false);
+  // 記單字階段不計時：重置暫停狀態，並停用暫停鍵（此階段本來就不走錶）
+  state.paused = false;
+  $('btnPause').textContent = '⏸ Pause';
+  $('btnPause').disabled = true;
+  updateTimerBadge();
 
   buildCards(state.words);
 }
@@ -722,6 +730,12 @@ $('btnHide').onclick = () => {
     $('answerBar').innerHTML = '❓ What is missing? Say it out loud!';
     $('btnShuffle').style.display = 'none';
     $('btnReveal').disabled = false;
+
+    // 從這一刻才開始計時（洗牌過程不計時）
+    state.paused = false;
+    $('btnPause').textContent = '⏸ Pause';
+    $('btnPause').disabled = state.minutes === 0;
+    updateTimerBadge();
   });
 };
 
@@ -734,8 +748,8 @@ $('btnReveal').onclick = () => {
   speak(words[0]);
   $('btnReveal').disabled = true;
 
-  // 答案揭曉、選誰答對時先暫停計時，下一輪自動繼續
-  if (state.minutes !== 0) setPaused(true);
+  // 看答案 / 選誰答對時停錶，下一輪 Hide one 才會繼續計時
+  if (state.minutes !== 0) { setPaused(true); $('btnPause').disabled = true; }
 
   // 記錄：被猜過的單字移出待回收池，其餘留下來等之後再考
   words.forEach(w => { if (!state.guessed.includes(w)) state.guessed.push(w); });
