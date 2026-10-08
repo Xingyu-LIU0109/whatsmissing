@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<title>What's Missing? - 單字記憶挑戰遊戲</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --blue: #3FA9F5;
+    --blue-deep: #2B8FE0;
+    --blue-light: #E3F2FE;
+    --blue-line: #9CCDF5;
+    --green: #2BC48A;
+    --yellow: #FFD27F;
+    --pink: #FF8FB1;
+    --ink: #2F4858;
+    --line: #5E7C8B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Baloo 2', 'ZCOOL KuaiLe', 'Microsoft JhengHei', 'PingFang TC', 'Segoe UI', sans-serif;
+    background: linear-gradient(170deg, #FFFFFF 0%, #F2F9FF 55%, #DFF1FF 100%);
+    min-height: 100vh; color: var(--ink); padding: 24px 16px 48px;
+  }
+  .app { max-width: 980px; margin: 0 auto; }
+  .screen { display: none; }
+  .screen.active { display: block; animation: fade .35s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  h1.title { text-align: center; font-size: clamp(2rem, 5vw, 3rem); color: var(--blue-deep); letter-spacing: 1px; }
+  .subtitle { text-align: center; color: #7C97A6; margin: 10px 0 8px; font-size: 1.05rem; }
+  .credit {
+    text-align: center; margin: 0 0 22px; font-size: 1.15rem; font-weight: 700;
+    color: var(--blue-deep); background: #fff; display: block; width: fit-content;
+    margin-left: auto; margin-right: auto; padding: 6px 20px; border-radius: 999px;
+    border: 3px solid var(--blue-line);
+  }
+  .panel {
+    background: #fff; border: 3px solid var(--blue-line); border-radius: 28px;
+    box-shadow: 0 10px 0 rgba(63,169,245,.10); padding: 28px;
+  }
+
+  button {
+    font-family: inherit; font-weight: 700; border: none; border-radius: 999px; cursor: pointer;
+    transition: transform .12s, box-shadow .12s; box-shadow: 0 5px 0 rgba(0,0,0,.10);
+  }
+  button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.10); }
+  button:disabled { opacity: .45; cursor: not-allowed; box-shadow: 0 5px 0 rgba(0,0,0,.06); }
+  .btn-lg { font-size: 1.2rem; padding: 16px 34px; color: #fff; }
+  .btn-blue { background: var(--blue); }
+  .btn-green { background: var(--green); }
+  .btn-yellow { background: var(--yellow); color: #7A5B20; }
+  .btn-pink { background: var(--pink); color: #fff; }
+  .btn-ghost { background: #fff; color: var(--blue-deep); border: 3px solid var(--blue-line); box-shadow: 0 4px 0 rgba(63,169,245,.18); }
+  .btn-sm { font-size: .95rem; padding: 10px 20px; }
+  .center { display: flex; justify-content: center; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+  /* ---------- 設定 ---------- */
+  .field { margin-bottom: 22px; }
+  .field label { display: block; font-weight: 700; margin-bottom: 10px; font-size: 1.05rem; }
+  .field .tip { font-weight: 400; color: #7C97A6; font-size: .9rem; }
+  select, input[type="text"], textarea {
+    font-family: inherit; font-size: 1rem; padding: 12px 14px;
+    border: 3px solid var(--blue-line); border-radius: 14px; width: 100%;
+    background: #FBFEFF; color: var(--ink); outline: none;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--blue); }
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+  .chip {
+    padding: 10px 18px; border: 3px solid var(--blue-line); border-radius: 999px;
+    background: #fff; cursor: pointer; font-weight: 700; color: var(--blue-deep); box-shadow: none;
+  }
+  .chip.selected { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .players-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .player-input-wrap { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 22px; height: 22px; border-radius: 50%; flex: 0 0 auto; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--blue-line); }
+
+  /* ---------- 遊戲 ---------- */
+  .hud { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-weight: 700; font-size: .95rem; }
+  .badge { background: #fff; border: 3px solid var(--blue-line); border-radius: 999px; padding: 6px 14px; color: var(--blue-deep); }
+  #timerBadge { font-size: 1rem; background: var(--blue-light); }
+  #timerBadge.over { background: var(--pink); color: #fff; border-color: var(--pink); }
+  #timerBadge.paused { background: #FFF3D6; border-color: var(--yellow); }
+  .scoreboard { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 12px; }
+  .score-card {
+    background: #fff; border: 3px solid var(--blue-line); border-radius: 14px;
+    padding: 5px 12px; display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: .95rem;
+  }
+  .score-card b { font-size: 1.1rem; color: var(--blue-deep); }
+
+  .stage {
+    display: flex; justify-content: center; align-items: center;
+    gap: clamp(14px, 3vw, 40px);
+    height: clamp(360px, 58vh, 580px);
+    background: #fff; border: 3px solid var(--blue-line); border-radius: 30px;
+    box-shadow: 0 12px 0 rgba(63,169,245,.10); padding: 18px;
+  }
+  /* 外層插槽負責錯落與洗牌位移，內層卡片負責旋轉與浮動 */
+  .card-slot { width: min(31%, 260px); }
+  .word-card {
+    width: 100%; aspect-ratio: 1 / 1.05;
+    background: #fff; border: 4px solid var(--blue-line); border-radius: 26px;
+    box-shadow: 0 8px 0 rgba(63,169,245,.15);
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    gap: 6px; padding: 10px; text-align: center;
+    animation: float 3.8s ease-in-out infinite;
+  }
+  .word-card .emo { font-size: clamp(2.8rem, 7vw, 4.4rem); line-height: 1.1; }
+  .word-card .word {
+    font-size: clamp(1.1rem, 3vw, 2.1rem); font-weight: 800; color: var(--blue-deep);
+    word-break: break-word; line-height: 1.15; letter-spacing: .5px;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(-8px) rotate(var(--rot, 0deg)); }
+    50%     { transform: translateY(8px) rotate(var(--rot, 0deg)); }
+  }
+  .word-card.missing {
+    background: var(--blue-light); border: 4px dashed var(--blue);
+    animation: none; transform: rotate(var(--rot, 0deg));
+  }
+  .word-card.no-float { animation: none; }
+  .word-card.missing .word, .word-card.missing .emo { display: none; }
+  .word-card.missing::after { content: "?"; font-size: clamp(3rem, 8vw, 5rem); color: var(--blue-deep); font-weight: 800; }
+
+  .answer-bar { margin-top: 18px; text-align: center; font-size: 1.3rem; font-weight: 800; min-height: 44px; color: var(--blue-deep); }
+  .answer-bar .big { font-size: 2rem; background: var(--blue-light); border-radius: 12px; padding: 4px 16px; border: 3px solid var(--blue-line); }
+  .phase-tip { text-align: center; color: #7C97A6; font-size: .95rem; margin-top: 10px; }
+
+  /* ---------- 彈窗 ---------- */
+  .modal { position: fixed; inset: 0; background: rgba(47,72,88,.5); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+  .modal.open { display: flex; }
+  .modal-box { background: #fff; border: 3px solid var(--blue-line); border-radius: 28px; padding: 26px; width: 100%; max-width: 580px; max-height: 88vh; overflow: auto; }
+  .modal-box h2 { color: var(--blue-deep); margin-bottom: 14px; }
+  .modal-box h3 { margin: 20px 0 10px; font-size: 1.05rem; }
+  textarea { min-height: 160px; resize: vertical; font-size: 1.05rem; line-height: 1.7; }
+  .bank-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 3px solid var(--blue-light); border-radius: 14px; padding: 10px 14px; margin-bottom: 10px; }
+  .bank-item .meta { font-size: .88rem; color: #7C97A6; }
+  .err { color: #E17055; font-size: .95rem; margin-top: 8px; min-height: 20px; }
+  .ok { color: var(--green); font-size: .95rem; margin-top: 8px; min-height: 20px; }
+  .hintline { font-size: .92rem; color: #7C97A6; margin-top: 8px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  .ranking { list-style: none; margin: 18px 0; }
+  .ranking li { display: flex; justify-content: space-between; align-items: center; border: 3px solid var(--blue-light); border-radius: 14px; padding: 12px 18px; margin-bottom: 10px; font-weight: 700; font-size: 1.1rem; }
+  .ranking li .rank { width: 34px; height: 34px; border-radius: 50%; background: var(--blue-light); border: 3px solid var(--blue-line); display: grid; place-items: center; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ 第一屏：歡迎 ============ -->
+  <section id="screen-welcome" class="screen active">
+    <h1 class="title">What's Missing?</h1>
+    <p class="subtitle">Three words, one disappears — who can say it first?</p>
+    <p class="credit">Made by Stella 💛</p>
+    <div class="panel">
+      <p style="line-height:1.9; margin-bottom:22px;">
+        🧠 <b>玩法：</b>每輪展示 3 個單字，老師按「🙈 遮住一個」後隨機消失 1 個。<br />
+        🔍 小朋友搶答消失的單字，答對 +1 分。<br />
+        ⏱ <b>老師計時：</b>設定總時長，時間到自動結算 —— 時間內完成越多、答對越多越好！
+      </p>
+      <div class="center">
+        <button class="btn-lg btn-ghost" id="btnManage">📚 管理詞庫</button>
+        <button class="btn-lg btn-blue" id="btnGoSetup">▶ 開始遊戲</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 第二屏：設定 ============ -->
+  <section id="screen-setup" class="screen">
+    <h1 class="title" style="font-size:2rem;">遊戲設定</h1>
+    <p class="subtitle">選擇完成後即可開始（姓名可留空）</p>
+    <div class="panel">
+      <div class="field">
+        <label>① 孩子人數（2 – 7 人）</label>
+        <div class="chips" id="playerCountChips"></div>
+      </div>
+
+      <div class="field">
+        <label>② 姓名 <span class="tip">（可留空，也可直接按「跳過」使用預設名字）</span></label>
+        <div class="players-grid" id="playerInputs"></div>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn-sm btn-ghost" id="btnSkipNames">⏭ 跳過，用預設名字</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>③ 遊戲總時長 <span class="tip">（老師計時，時間到自動結算）</span></label>
+        <div class="chips" id="timeChips">
+          <button class="chip" data-min="1">1 分鐘</button>
+          <button class="chip" data-min="3">3 分鐘</button>
+          <button class="chip" data-min="5">5 分鐘</button>
+          <button class="chip" data-min="10">10 分鐘</button>
+          <button class="chip" data-min="0">不限時</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>④ 選擇詞庫 <span class="tip">（預設「全部混池」，每輪隨機抽 3 個，消失 1 個）</span></label>
+        <select id="bankSelect"></select>
+        <div class="hintline" id="bankPreview"></div>
+      </div>
+
+      <div class="center" style="margin-top:26px;">
+        <button class="btn-lg btn-ghost" id="btnBackWelcome">← 返回</button>
+        <button class="btn-lg btn-blue" id="btnStart" disabled>準備開始遊戲</button>
+      </div>
+      <div class="hintline" id="startHint" style="text-align:center;"></div>
+    </div>
+  </section>
+
+  <!-- ============ 第三屏：遊戲（老師主導） ============ -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <span class="badge">Round <span id="roundNo">1</span></span>
+      <span class="badge" id="phaseBadge">Memorize</span>
+      <span class="badge" id="timerBadge">--:--</span>
+      <span class="badge" id="bankBadge">Words</span>
+      <button class="btn-sm btn-ghost" id="btnPause">⏸ Pause</button>
+      <button class="btn-sm btn-pink" id="btnEnd">Finish</button>
+    </div>
+
+    <div class="scoreboard" id="scoreboard"></div>
+
+    <div class="stage" id="stage"></div>
+
+    <div class="answer-bar" id="answerBar"></div>
+
+    <div class="center" style="margin-top:16px;">
+      <button class="btn-lg btn-ghost" id="btnShuffle">🔀 Shuffle</button>
+      <button class="btn-lg btn-ghost" id="btnHide">🙈 Hide one</button>
+      <button class="btn-lg btn-green" id="btnReveal" disabled>💡 Show answer</button>
+      <button class="btn-lg btn-yellow" id="btnNext" style="display:none;">Next →</button>
+    </div>
+    <div class="center" id="awardRow" style="margin-top:14px;"></div>
+    <p class="phase-tip">Keys: Space = Hide / Next　·　Enter = Show answer</p>
+  </section>
+
+  <!-- ============ 結算 ============ -->
+  <section id="screen-result" class="screen">
+    <h1 class="title" style="font-size:2rem;">🏆 Game Over</h1>
+    <div class="panel">
+      <p class="subtitle" id="resultSummary"></p>
+      <ul class="ranking" id="ranking"></ul>
+      <div class="center">
+        <button class="btn-lg btn-blue" id="btnAgain">🔁 Play again</button>
+        <button class="btn-lg btn-ghost" id="btnHome">🏠 Home</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ 詞庫管理彈窗 ============ -->
+<div class="modal" id="bankModal">
+  <div class="modal-box">
+    <h2>📚 管理詞庫</h2>
+
+    <h3>匯入自訂詞庫</h3>
+    <input type="text" id="bankName" placeholder="詞庫名稱，例如：交通工具" />
+    <textarea id="bankWords" placeholder="每行一個單字，至少 3 個，建議英文小寫&#10;train&#10;bus&#10;taxi"></textarea>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn-sm btn-green" id="btnImport">匯入</button>
+      <span class="hintline" style="margin:0;">儲存在本機瀏覽器，重新整理後仍可使用。</span>
+    </div>
+    <div class="err" id="importErr"></div>
+    <div class="ok" id="importOk"></div>
+
+    <h3>已有詞庫</h3>
+    <div id="bankList"></div>
+
+    <div class="center" style="margin-top:22px;">
+      <button class="btn-lg btn-ghost" id="btnCloseModal">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 單字（幼兒園 ~ 小學三年級程度） ============ */
+const EMOJI = {
+  cat:'🐱', dog:'🐶', pig:'🐷', cow:'🐮', duck:'🦆', bird:'🐦', fish:'🐟', bear:'🐻', frog:'🐸',
+  lion:'🦁', monkey:'🐵', panda:'🐼', rabbit:'🐰', sheep:'🐑', horse:'🐴', chicken:'🐔', mouse:'🐭',
+  bee:'🐝', turtle:'🐢', snake:'🐍', fox:'🦊',
+  apple:'🍎', banana:'🍌', orange:'🍊', grape:'🍇', peach:'🍑', pear:'🍐', lemon:'🍋', cherry:'🍒',
+  cake:'🍰', milk:'🥛', egg:'🥚', rice:'🍚', bread:'🍞', juice:'🧃', candy:'🍬', cookie:'🍪',
+  tomato:'🍅', carrot:'🥕', corn:'🌽', soup:'🍲',
+  red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡', pink:'🌸', purple:'🟣', black:'⚫', white:'⚪', brown:'🟤',
+  circle:'⭕', square:'🟦', triangle:'🔺', star:'⭐', heart:'❤️',
+  book:'📕', pen:'🖊️', pencil:'✏️', ruler:'📏', bag:'🎒', desk:'🪑', chair:'💺', paper:'📄',
+  crayon:'🖍️', glue:'🧴', clock:'🕐', eraser:'🧽',
+  car:'🚗', bus:'🚌', train:'🚆', boat:'⛵', bike:'🚲', plane:'✈️', ship:'🚢', truck:'🚚',
+  taxi:'🚕', jeep:'🚙', van:'🚐',
+  eye:'👁️', ear:'👂', nose:'👃', mouth:'👄', hand:'✋', foot:'🦶', arm:'💪', leg:'🦵',
+  tooth:'🦷', finger:'👆',
+  bed:'🛏️', lamp:'💡', door:'🚪', window:'🪟', key:'🔑', cup:'🥤', bowl:'🥣', spoon:'🥄',
+  fork:'🍴', plate:'🍽️', phone:'📱', box:'📦',
+  sun:'☀️', moon:'🌙', star2:'🌟', cloud:'☁️', rain:'🌧️', snow:'❄️', tree:'🌳', flower:'🌷',
+  grass:'🌿', sky:'🌤️', leaf:'🍃', sea:'🌊',
+  shirt:'👕', pants:'👖', dress:'👗', shoes:'👟', hat:'🧢', socks:'🧦', coat:'🧥', glove:'🧤', scarf:'🧣',
+  run:'🏃', jump:'🤸', walk:'🚶', swim:'🏊', sing:'🎤', dance:'💃', read:'📖', write:'✍️',
+  draw:'🎨', play:'🎮', sleep:'😴', eat:'🍽️', drink:'🥤',
+  mom:'👩', dad:'👨', baby:'👶', sister:'👧', brother:'👦', family:'👨‍👩‍👧', friend:'🧑‍🤝‍🧑',
+  ball:'⚽', doll:'🪆', kite:'🪁', balloon:'🎈', game:'🎮', gift:'🎁', drum:'🥁', bell:'🔔',
+  one:'1️⃣', two:'2️⃣', three:'3️⃣', four:'4️⃣', five:'5️⃣', six:'6️⃣', seven:'7️⃣', eight:'8️⃣', nine:'9️⃣', ten:'🔟',
+  park:'🏞️', zoo:'🦁', home:'🏠', school:'🏫', shop:'🏪', beach:'🏖️', garden:'🌷', farm:'🚜'
+};
+
+const CATEGORIES = {
+  animals: ['cat','dog','pig','cow','duck','bird','fish','bear','frog','lion','monkey','panda','rabbit','sheep','horse','chicken','mouse','bee','turtle','snake','fox'],
+  food: ['apple','banana','orange','grape','peach','pear','lemon','cherry','cake','milk','egg','rice','bread','juice','candy','cookie','tomato','carrot','corn','soup'],
+  colors: ['red','blue','green','yellow','pink','purple','black','white','brown','circle','square','triangle','star','heart'],
+  school: ['book','pen','pencil','ruler','bag','desk','chair','paper','crayon','glue','clock','eraser'],
+  vehicles: ['car','bus','train','boat','bike','plane','ship','truck','taxi','jeep','van'],
+  body: ['eye','ear','nose','mouth','hand','foot','arm','leg','tooth','finger'],
+  home: ['bed','lamp','door','window','key','cup','bowl','spoon','fork','plate','phone','box'],
+  nature: ['sun','moon','cloud','rain','snow','tree','flower','grass','sky','leaf','sea'],
+  clothes: ['shirt','pants','dress','shoes','hat','socks','coat','glove','scarf'],
+  actions: ['run','jump','walk','swim','sing','dance','read','write','draw','play','sleep','eat','drink'],
+  family: ['mom','dad','baby','sister','brother','family','friend'],
+  toys: ['ball','doll','kite','balloon','game','gift','drum','bell'],
+  numbers: ['one','two','three','four','five','six','seven','eight','nine','ten'],
+  places: ['park','zoo','home','school','shop','beach','garden','farm']
+};
+
+const ZH_NAME = {
+  animals:'動物', food:'食物', colors:'顏色形狀', school:'學習用品', vehicles:'交通工具',
+  body:'身體', home:'家居物品', nature:'大自然', clothes:'衣物', actions:'動作',
+  family:'家人朋友', toys:'玩具', numbers:'數字', places:'地點'
+};
+
+const DEFAULT_BANKS = Object.keys(CATEGORIES).map(k => ({
+  id: 'd-' + k, name: `${ZH_NAME[k]} ${k[0].toUpperCase() + k.slice(1)}`, custom: false, words: CATEGORIES[k]
+}));
+
+// 全部混池：所有分類合成一個大詞庫（去重）
+const MIXED = [];
+Object.values(CATEGORIES).forEach(list => list.forEach(w => { if (!MIXED.includes(w)) MIXED.push(w); }));
+DEFAULT_BANKS.unshift({ id: 'd-mixed', name: `⭐ 全部混池 Mixed（${MIXED.length} 字）`, custom: false, words: MIXED });
+
+const LS_KEY = 'whatsmissing.banks.v2';
+const SHOW_COUNT = 3;   // 每輪展示 3 個單字
+
+let banks = loadBanks();
+function loadBanks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    if (Array.isArray(saved)) return DEFAULT_BANKS.concat(saved);
+  } catch (e) { /* ignore */ }
+  return DEFAULT_BANKS.slice();
+}
+function saveCustomBanks() {
+  localStorage.setItem(LS_KEY, JSON.stringify(banks.filter(b => b.custom)));
+}
+
+/* ============ 狀態 ============ */
+const state = {
+  playerCount: 0,
+  players: [],
+  minutes: 3,
+  bankId: '',
+  round: 0,
+  words: [],
+  cards: [],          // [{slot, el, wi}] 依畫面順序
+  missingWords: [],
+  hiddenPos: -1,
+  phase: 'idle',   // show | shuffling | hidden | revealed
+  scored: false,
+  timeLeft: 0,
+  paused: false,
+  shown: [],       // 曾出現過但還沒被當成答案的單字（待回收）
+  guessed: []      // 曾經被猜過（當過消失單字）
+};
+const PLAYER_COLORS = ['#8ED0FF', '#A8E6CF', '#FFD27F', '#FFB3C6', '#C8B6FF', '#9BE7E0', '#FFC9A3'];
+
+/* ============ DOM ============ */
+const $ = id => document.getElementById(id);
+const screens = { welcome: $('screen-welcome'), setup: $('screen-setup'), game: $('screen-game'), result: $('screen-result') };
+function show(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+/* ============ 第一屏 ============ */
+$('btnManage').onclick = openModal;
+$('btnGoSetup').onclick = () => { renderBankSelect(); show('setup'); };
+
+/* ============ 第二屏：設定 ============ */
+(function buildPlayerChips() {
+  const box = $('playerCountChips');
+  for (let n = 2; n <= 7; n++) {
+    const c = document.createElement('button');
+    c.className = 'chip'; c.dataset.n = n; c.textContent = n + ' 人';
+    box.appendChild(c);
+  }
+  box.querySelectorAll('.chip').forEach(chip => chip.onclick = () => {
+    box.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    state.playerCount = Number(chip.dataset.n);
+    renderPlayerInputs();
+    validateSetup();
+  });
+})();
+
+(function defaultTime() {
+  const chip = $('timeChips').querySelector('.chip[data-min="3"]');
+  chip.classList.add('selected');
+  state.minutes = 3;
+})();
+
+$('timeChips').querySelectorAll('.chip').forEach(chip => chip.onclick = () => {
+  $('timeChips').querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  chip.classList.add('selected');
+  state.minutes = Number(chip.dataset.min);
+});
+
+function renderPlayerInputs() {
+  const box = $('playerInputs');
+  box.innerHTML = '';
+  for (let i = 0; i < state.playerCount; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'player-input-wrap';
+    wrap.innerHTML = `<span class="dot" style="background:${PLAYER_COLORS[i]}"></span>
+      <input type="text" data-i="${i}" placeholder="孩子 ${i + 1}（可留空）" value="${state.players[i]?.name || ''}" />`;
+    box.appendChild(wrap);
+  }
+  box.querySelectorAll('input').forEach(inp => {
+    inp.oninput = () => {
+      const i = Number(inp.dataset.i);
+      state.players[i] = { name: inp.value.trim(), color: PLAYER_COLORS[i], score: 0 };
+    };
+  });
+}
+
+$('btnSkipNames').onclick = () => {
+  if (!state.playerCount) return;
+  state.players = Array.from({ length: state.playerCount }, (_, i) => ({ name: '孩子' + (i + 1), color: PLAYER_COLORS[i], score: 0 }));
+  renderPlayerInputs();
+};
+
+function renderBankSelect() {
+  const sel = $('bankSelect');
+  sel.innerHTML = '';
+  banks.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = b.name + (b.custom ? '' : `（${b.words.length} 字）`);
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => { state.bankId = sel.value; updateBankPreview(); validateSetup(); };
+  if (!state.bankId || !banks.some(b => b.id === state.bankId)) state.bankId = banks[0].id;
+  sel.value = state.bankId;
+  updateBankPreview();
+}
+function updateBankPreview() {
+  const b = banks.find(x => x.id === state.bankId);
+  $('bankPreview').textContent = b ? '預覽：' + b.words.slice(0, 18).join(' / ') + (b.words.length > 18 ? ' …（共 ' + b.words.length + ' 字）' : '') : '';
+}
+function validateSetup() {
+  const need = [];
+  if (state.playerCount <= 0) need.push('孩子人數');
+  if (!state.bankId || !bankHasEnough()) need.push('詞庫（至少 3 個單字）');
+  const ok = need.length === 0;
+  $('btnStart').disabled = !ok;
+  $('startHint').textContent = ok ? '✅ 可以開始了（姓名留空會自動命名為 孩子1、孩子2…）' : '還需選擇：' + need.join('、');
+}
+function bankHasEnough() { const b = banks.find(x => x.id === state.bankId); return !!b && b.words.length >= SHOW_COUNT; }
+
+$('btnBackWelcome').onclick = () => show('welcome');
+$('btnStart').onclick = () => {
+  state.players = Array.from({ length: state.playerCount }, (_, i) => ({
+    name: state.players[i]?.name || ('孩子' + (i + 1)), color: PLAYER_COLORS[i], score: 0
+  }));
+  state.round = 0;
+  state.shown = [];
+  state.guessed = [];
+  state.timeLeft = state.minutes * 60;
+  state.paused = false;
+  $('btnPause').textContent = '⏸ Pause';
+  show('game');
+  renderScoreboard();
+  startTimer();
+  nextRound();
+};
+
+/* ============ 計時（老師計時） ============ */
+let timer = null;
+function startTimer() {
+  clearInterval(timer);
+  updateTimerBadge();
+  if (state.minutes === 0) return;
+  timer = setInterval(() => {
+    if (state.paused) return;
+    state.timeLeft -= 1;
+    updateTimerBadge();
+    if (state.timeLeft <= 0) { clearInterval(timer); finishGame(true); }
+  }, 1000);
+}
+function updateTimerBadge() {
+  const el = $('timerBadge');
+  el.classList.toggle('paused', state.minutes !== 0 && state.paused);
+  if (state.minutes === 0) { el.textContent = '⏱ No limit'; el.classList.remove('over'); return; }
+  el.textContent = (state.paused ? '⏸ ' : '⏱ ') + fmtTime(Math.max(0, state.timeLeft));
+  el.classList.toggle('over', state.timeLeft <= 10 && !state.paused);
+}
+function setPaused(v) {
+  state.paused = v;
+  $('btnPause').textContent = v ? '▶ Resume' : '⏸ Pause';
+  updateTimerBadge();
+}
+$('btnPause').onclick = () => {
+  if (state.minutes === 0) return;
+  setPaused(!state.paused);
+};
+
+/* ============ 遊戲流程 ============ */
+function renderScoreboard() {
+  const box = $('scoreboard');
+  box.innerHTML = '';
+  state.players.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'score-card';
+    el.innerHTML = `<span class="dot" style="background:${p.color}"></span>${p.name} <b>${p.score}</b> pt`;
+    box.appendChild(el);
+  });
+}
+
+/* 洗牌動畫：卡片真實交換位置（FLIP），讓孩子不能只記位置 */
+function shuffleCards(callback) {
+  const stage = $('stage');
+  const slots = state.cards.map(c => c.slot);
+  const firstRects = new Map();
+  slots.forEach(s => firstRects.set(s, s.getBoundingClientRect()));
+
+  const order = shuffle(slots);
+  order.forEach(s => stage.appendChild(s));
+  state.cards = order.map(s => state.cards.find(c => c.slot === s));
+
+  const anims = [];
+  order.forEach(s => {
+    const f = firstRects.get(s);
+    const l = s.getBoundingClientRect();
+    const dx = f.left - l.left, dy = f.top - l.top;
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      anims.push(s.animate(
+        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
+        { duration: 620, easing: 'cubic-bezier(.34,.06,.25,1)' }
+      ));
+    }
+  });
+
+  const done = () => { if (callback) callback(); };
+  if (!anims.length) { done(); return; }
+  Promise.all(anims.map(a => a.finished.catch(() => {}))).then(done);
+}
+
+/* 出題：優先回收「出現過但還沒被猜過」的單字（第 6 輪起） */
+function pickWords(bank) {
+  const pool = bank.words;
+  const picks = [];
+  const due = state.shown.filter(w => pool.includes(w) && !state.guessed.includes(w));
+  if (state.round > 5 && due.length) {
+    const n = Math.min(2, SHOW_COUNT - 1, due.length);
+    shuffle(due).slice(0, n).forEach(w => picks.push(w));
+  }
+  let guard = 0;
+  while (picks.length < SHOW_COUNT && guard < 500) {
+    guard++;
+    const w = pool[Math.floor(Math.random() * pool.length)];
+    if (!picks.includes(w)) picks.push(w);
+  }
+  return shuffle(picks);
+}
+
+function buildCards(words) {
+  const stage = $('stage');
+  stage.innerHTML = '';
+  state.cards = words.map((w, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'card-slot';
+    // 錯落但不重疊：上下位移 + 輕微旋轉
+    slot.style.marginTop = (Math.round((Math.random() - 0.5) * 46)) + 'px';
+    const el = document.createElement('div');
+    el.className = 'word-card';
+    el.style.setProperty('--rot', ((Math.random() - 0.5) * 7).toFixed(2) + 'deg');
+    el.innerHTML = `${EMOJI[w] ? `<span class="emo">${EMOJI[w]}</span>` : ''}<span class="word">${w}</span>`;
+    el.style.animationDelay = (i * 0.25).toFixed(2) + 's';
+    slot.appendChild(el);
+    stage.appendChild(slot);
+    return { slot, el, wi: i };
+  });
+}
+
+function nextRound() {
+  const bank = banks.find(b => b.id === state.bankId);
+  if (!bank || bank.words.length < SHOW_COUNT) { alert('目前詞庫單字不足 3 個，請重新選擇或匯入詞庫。'); return; }
+  state.round += 1;
+  state.scored = false;
+  state.words = pickWords(bank);
+  state.missingWords = [];
+  state.hiddenPos = -1;
+  state.phase = 'show';
+
+  $('roundNo').textContent = state.round;
+  $('bankBadge').textContent = bank.name;
+  $('phaseBadge').textContent = 'Memorize (3 words)';
+  $('answerBar').innerHTML = '👀 Remember these 3 words!';
+  $('awardRow').innerHTML = '';
+  $('btnHide').style.display = 'inline-block';
+  $('btnHide').disabled = false;
+  $('btnShuffle').style.display = 'inline-block';
+  $('btnShuffle').disabled = false;
+  $('btnReveal').disabled = true;
+  $('btnNext').style.display = 'none';
+
+  // 新一輪開始，計時繼續
+  if (state.minutes !== 0) setPaused(false);
+
+  buildCards(state.words);
+}
+
+// 老師可隨時手動洗牌
+$('btnShuffle').onclick = () => {
+  if (state.phase !== 'show') return;
+  $('btnShuffle').disabled = true;
+  $('btnHide').disabled = true;
+  shuffleCards(() => {
+    $('btnShuffle').disabled = false;
+    $('btnHide').disabled = false;
+  });
+};
+
+$('btnHide').onclick = () => {
+  if (state.phase !== 'show') return;
+  state.phase = 'shuffling';
+  $('btnHide').disabled = true;
+  $('btnShuffle').disabled = true;
+  $('phaseBadge').textContent = '🔀 Shuffling…';
+  $('answerBar').innerHTML = '🔀 Watch the cards move!';
+
+  // 先洗牌，再隨機讓「某一個位置」的卡片消失
+  shuffleCards(() => {
+    const pos = Math.floor(Math.random() * state.cards.length);
+    state.hiddenPos = pos;
+    const card = state.cards[pos];
+    card.el.classList.add('missing');
+    state.missingWords = [state.words[card.wi]];
+    state.phase = 'hidden';
+    $('phaseBadge').textContent = "What's missing?";
+    $('answerBar').innerHTML = '❓ What is missing? Say it out loud!';
+    $('btnShuffle').style.display = 'none';
+    $('btnReveal').disabled = false;
+  });
+};
+
+$('btnReveal').onclick = () => {
+  if (state.phase !== 'hidden') return;
+  state.phase = 'revealed';
+  const words = state.missingWords;
+  $('phaseBadge').textContent = 'Answer';
+  $('answerBar').innerHTML = 'The missing word is: <span class="big">' + words.join(' , ') + '</span>';
+  speak(words[0]);
+  $('btnReveal').disabled = true;
+
+  // 答案揭曉、選誰答對時先暫停計時，下一輪自動繼續
+  if (state.minutes !== 0) setPaused(true);
+
+  // 記錄：被猜過的單字移出待回收池，其餘留下來等之後再考
+  words.forEach(w => { if (!state.guessed.includes(w)) state.guessed.push(w); });
+  state.shown = state.shown.filter(w => !words.includes(w));
+  state.words.forEach(w => { if (!state.shown.includes(w) && !state.guessed.includes(w)) state.shown.push(w); });
+
+  const row = $('awardRow');
+  row.innerHTML = '';
+  const label = document.createElement('span');
+  label.style.cssText = 'font-weight:700;';
+  label.textContent = 'Who got it right?';
+  row.appendChild(label);
+  state.players.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.className = 'btn-sm btn-blue';
+    b.textContent = '👍 ' + p.name;
+    b.onclick = () => {
+      if (state.scored) return;
+      state.scored = true;
+      state.players[i].score += 1;
+      renderScoreboard();
+      row.querySelectorAll('button').forEach(x => x.style.display = 'none');
+      label.textContent = `🎉 ${p.name} got it! +1 point`;
+    };
+    row.appendChild(b);
+  });
+  const skip = document.createElement('button');
+  skip.className = 'btn-sm btn-ghost';
+  skip.textContent = 'Nobody';
+  skip.onclick = () => { state.scored = true; row.querySelectorAll('button').forEach(x => x.style.display = 'none'); label.textContent = '😯 Nobody scored this round'; };
+  row.appendChild(skip);
+
+  $('btnNext').style.display = 'inline-block';
+  $('btnHide').style.display = 'none';
+};
+
+$('btnNext').onclick = nextRound;
+$('btnEnd').onclick = () => finishGame(false);
+
+document.addEventListener('keydown', e => {
+  if (!screens.game.classList.contains('active')) return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (state.phase === 'show') $('btnHide').click();
+    else if (state.phase === 'revealed') $('btnNext').click();
+  } else if (e.code === 'Enter') {
+    e.preventDefault();
+    if (state.phase === 'hidden') $('btnReveal').click();
+  }
+});
+
+function speak(word) {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(word);
+    u.lang = 'en-US'; u.rate = 0.8;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch (e) { /* ignore */ }
+}
+
+/* ============ 結算 ============ */
+function finishGame(auto) {
+  clearInterval(timer);
+  const ranked = state.players.slice().sort((a, b) => b.score - a.score);
+  const list = $('ranking');
+  list.innerHTML = '';
+  ranked.forEach((p, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="rank">${i + 1}</span>
+      <span style="display:flex;align-items:center;gap:10px;"><span class="dot" style="background:${p.color}"></span>${p.name}</span>
+      <span>${p.score} pt</span>`;
+    list.appendChild(li);
+  });
+  const used = state.minutes === 0 ? 'no time limit' : `time used ${fmtTime(state.minutes * 60 - Math.max(0, state.timeLeft))}`;
+  $('resultSummary').textContent = `${auto ? "⏰ Time's up! " : ''}${state.round} rounds played · ${used}`;
+  show('result');
+}
+$('btnAgain').onclick = () => show('setup');
+$('btnHome').onclick = () => show('welcome');
+
+/* ============ 詞庫彈窗 ============ */
+const modal = $('bankModal');
+function openModal() { modal.classList.add('open'); renderBankList(); }
+function closeModal() { modal.classList.remove('open'); $('importErr').textContent = ''; $('importOk').textContent = ''; }
+$('btnCloseModal').onclick = closeModal;
+modal.onclick = e => { if (e.target === modal) closeModal(); };
+
+$('btnImport').onclick = () => {
+  const name = $('bankName').value.trim();
+  const words = $('bankWords').value.split(/[\n,，;；]+/).map(w => w.trim().toLowerCase()).filter(Boolean);
+  $('importErr').textContent = ''; $('importOk').textContent = '';
+  if (!name) { $('importErr').textContent = '請先填寫詞庫名稱。'; return; }
+  if (words.length < SHOW_COUNT) { $('importErr').textContent = `至少需要 ${SHOW_COUNT} 個單字，目前 ${words.length} 個。`; return; }
+  banks.push({ id: 'c-' + Date.now(), name: '自訂 · ' + name, custom: true, words });
+  saveCustomBanks();
+  $('bankName').value = ''; $('bankWords').value = '';
+  $('importOk').textContent = `已匯入「${name}」，共 ${words.length} 個單字。`;
+  renderBankList(); renderBankSelect();
+};
+
+function renderBankList() {
+  const box = $('bankList');
+  box.innerHTML = '';
+  banks.forEach(b => {
+    const item = document.createElement('div');
+    item.className = 'bank-item';
+    item.innerHTML = `<div>
+        <div style="font-weight:700;">${b.name}</div>
+        <div class="meta">${b.words.slice(0, 12).join(' / ')}${b.words.length > 12 ? ' …（共 ' + b.words.length + ' 字）' : ''}</div>
+      </div>`;
+    if (b.custom) {
+      const del = document.createElement('button');
+      del.className = 'btn-sm btn-pink'; del.textContent = '刪除';
+      del.onclick = () => {
+        banks = banks.filter(x => x.id !== b.id);
+        saveCustomBanks();
+        if (state.bankId === b.id) state.bankId = banks[0]?.id || '';
+        renderBankList(); renderBankSelect();
+      };
+      item.appendChild(del);
+    } else {
+      const tag = document.createElement('span');
+      tag.className = 'meta'; tag.textContent = '內建';
+      item.appendChild(tag);
+    }
+    box.appendChild(item);
+  });
+}
+
+/* 初始化 */
+renderBankSelect();
+validateSetup();
+</script>
+</body>
+</html>
