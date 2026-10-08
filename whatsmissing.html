@@ -9,7 +9,7 @@
 <title>What's Missing? - 單字記憶挑戰遊戲</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet" />
 <style>
   :root {
     --blue: #3FA9F5;
@@ -24,7 +24,8 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Baloo 2', 'ZCOOL KuaiLe', 'Microsoft JhengHei', 'PingFang TC', 'Segoe UI', sans-serif;
+    /* 英文 / 數字用圓體 Baloo 2；中文字型維持系統原本的微軟正黑體，避免字形不一致 */
+    font-family: 'Baloo 2', 'Microsoft JhengHei', 'PingFang TC', 'Segoe UI', sans-serif;
     background: linear-gradient(170deg, #FFFFFF 0%, #F2F9FF 55%, #DFF1FF 100%);
     min-height: 100vh; color: var(--ink); padding: 24px 16px 48px;
   }
